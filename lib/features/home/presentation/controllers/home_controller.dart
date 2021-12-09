@@ -1,36 +1,41 @@
 // ignore_for_file: always_specify_types
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:thepos/core/init_app.dart';
 import 'package:thepos/features/home/data/models/category.dart';
 import 'package:thepos/features/home/data/models/product.dart';
 import 'package:thepos/features/home/data/repositories/home_repository.dart';
+import 'package:thepos/features/home/presentation/widgets/common/popup_choice_barcode.dart';
 
 class HomeController extends GetxController {
   var listHomeProduct = <Product>[].obs;
   var newListHomeProduct = <Product>[].obs;
+  var listCategory = <Category>[].obs;
   var searching = false.obs;
   var barcoding = false.obs;
 
   RxBool loadingHome = false.obs;
   RxBool showHideCarts = false.obs;
+@override
+  void onInit() {
 
+  super.onInit();
+}
   @override
   void onReady() {
     super.onReady();
+    getProductsCategories();
 
     getProduct();
   }
 
   Category? selectedCategory;
-  List<Category> listCategory = [
-    Category(id: "1", name: "الطيور"),
-    Category(id: "2", name: "القطط"),
-    Category(id: "3", name: "الكلاب"),
-    Category(id: "4", name: "الكل")
-  ]; //TODO get values from repository
+  //TODO get values from repository
   onSearch(String value) {
     newListHomeProduct.value = listHomeProduct.value
         .where(
@@ -38,6 +43,7 @@ class HomeController extends GetxController {
         .toList();
     update();
   }
+
   onBarcode(String value) {
     newListHomeProduct.value = listHomeProduct.value
         .where(
@@ -49,7 +55,8 @@ class HomeController extends GetxController {
   Future getProduct() async {
     loadingHome.value = true;
     try {
-      listHomeProduct.value = await getIt<HomeRepository>().getProducts();
+      final homeRepo = getIt<HomeRepository>();
+      listHomeProduct.value = await homeRepo.getProducts();
       newListHomeProduct = listHomeProduct.value.obs;
       print("Count PR  ${listHomeProduct.value.length}");
       update();
@@ -60,18 +67,32 @@ class HomeController extends GetxController {
   }
 
   Future getProductsByGroupId() async {
-    if (selectedCategory != null) {
+    if (selectedCategory == null) {
       return;
     }
     try {
       listHomeProduct.value = await getIt<HomeRepository>()
-          .getProductsByGroupId(int.parse(selectedCategory!.id));
+          .getProductsByGroupId(int.parse(selectedCategory!.id.toString()));
+      newListHomeProduct.clear();
       newListHomeProduct = listHomeProduct.value.obs;
       update();
     } catch (e) {
       print("error getProduct $e");
     }
     loadingHome.value = false;
+  }
+
+  Future getProductsCategories() async {
+    loadingHome.value = true;
+    update();
+
+    try {
+      listCategory.value = await getIt<HomeRepository>().getProductsCategories();
+    } catch (e) {
+      print("error getProductsCategories $e");
+    }
+    loadingHome.value = false;
+    update();
   }
 
   Future changeCategory(Category cat) async {
@@ -128,5 +149,40 @@ class HomeController extends GetxController {
 
     _scanBarcode = barcodeScanRes;
   }
-}
 
+  void modalBottomSheetMenu4() {
+    showModalBottomSheet(
+        context: Get.context!,
+        // use the shape border property to give it rounder corners
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        builder: (builder) {
+          return const PopupChoiceBarcode();
+        }).then((value) {
+      if (value != null && value == 1) {
+        _checkCameraPermission(callback: () {
+          scanQR();
+        });
+      } else if (value != null && value == 2) {
+        _checkCameraPermission(callback: () {
+          scanBarcodeNormal();
+        });
+      }
+    });
+  }
+
+  void _checkCameraPermission({required Function() callback}) async {
+    var status = await Permission.camera.request();
+    if (status.isGranted) {
+      callback();
+    } else {
+      final isOpend = await openAppSettings();
+      print("no permission for camera $isOpend");
+    }
+  }
+
+}

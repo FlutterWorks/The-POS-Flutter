@@ -9,6 +9,7 @@ import 'package:thepos/core/preferences_utils.dart';
 import 'package:thepos/features/home/data/datasources/home_faker_data_source.dart';
 import 'package:thepos/features/home/data/datasources/home_local_data_source.dart';
 import 'package:thepos/features/home/data/datasources/home_remote_data_source.dart';
+import 'package:thepos/features/home/data/models/category.dart';
 import 'package:thepos/features/home/data/models/product.dart';
 import 'package:thepos/features/home/data/repositories/home_repository.dart';
 import 'package:thepos/features/invoice/data/data_sources/api_invoice/remote_store_invoice.dart';
@@ -19,22 +20,23 @@ import 'package:thepos/features/invoice/data/repositories/invoice_repository.dar
 import 'config.dart';
 
 late Box<Product> productsBox;
+late Box<Category> categoriesBox;
 final faker = Faker.instance;
 
-void init() async {
+Future<void> init() async {
   await Hive.initFlutter();
+  setupGetIt();
   Hive.registerAdapter(ProductAdapter());
   productsBox = await Hive.openBox<Product>('productsBox');
+  categoriesBox = await Hive.openBox<Category>('categoriesBox');
   setupGetIt();
-  await PreferenceUtils.init();
-
   // Get.create(()=>HomeController());
+  await PreferenceUtils.init();
 }
 
 final getIt = GetIt.instance;
-
 Future<void> setupGetIt() async {
-  //dataSorces
+//   //dataSorces
   getIt.registerSingleton<HomeLocalDataSource>(HomeLocalDataSource());
   getIt.registerSingleton<HomeRemoteDataSource>(HomeRemoteDataSource());
   getIt.registerSingleton<HomeFakerDataSource>(HomeFakerDataSource());

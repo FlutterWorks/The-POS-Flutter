@@ -1,11 +1,11 @@
 import 'package:thepos/core/config.dart';
 import 'package:thepos/core/init_app.dart';
+import 'package:thepos/features/home/data/models/category.dart';
 import 'package:thepos/core/preferences_utils.dart';
 import 'package:thepos/features/home/data/models/product.dart';
 import 'package:thepos/features/products/product_cache_policy.dart';
 
 class HomeLocalDataSource {
-
   Future<List<Product>> getProducts() async {
     final bool isCacheExpired = await _isCacheExpired();
     if (isCacheExpired) {
@@ -17,7 +17,6 @@ class HomeLocalDataSource {
   }
 
   Future<Iterable<int>> insertProducts(List<Product> products) async {
-
     PreferenceUtils.setCacheTime(DateTime.now().millisecondsSinceEpoch);
     return productsBox.addAll(products);
   }
@@ -34,9 +33,12 @@ class HomeLocalDataSource {
     }
   }
 
-  Future<bool> _isCacheExpired() async {
+  Future<List<Category>> getProductsCategories() async {
+    return categoriesBox.values.toList();
+  }
 
-    final int cachedProductTime = PreferenceUtils.getCacheTime();
+  Future<bool> _isCacheExpired() async {
+    final int cachedProductTime = await PreferenceUtils.getCacheTime();
     if (cachedProductTime == null) {
       return false;
     }
